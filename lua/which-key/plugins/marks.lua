@@ -4,12 +4,14 @@ local M = {}
 
 M.name = "marks"
 
-M.actions = {
+M.actions = { 
   { trigger = "'", mode = "n" },
   { trigger = "`", mode = "n" },
   { trigger = "g`", mode = "n" },
   { trigger = "g'", mode = "n" },
 }
+
+function M.setup(_wk, _config, options) end
 
 if extra == true then
   M.actions = {
@@ -60,12 +62,8 @@ function M.run(_trigger, _mode, buf)
   local items = {}
 
   local marks = {}
-  for _, mark in pairs(vim.fn.getmarklist(buf)) do
-    table.insert(marks, mark)
-  end
-  for _, mark in pairs(vim.fn.getmarklist()) do
-    table.insert(marks, mark)
-  end
+  vim.list_extend(marks, vim.fn.getmarklist(buf))
+  vim.list_extend(marks, vim.fn.getmarklist())
 
   for _, mark in pairs(marks) do
     local key = mark.mark:sub(2, 2)
@@ -82,15 +80,16 @@ function M.run(_trigger, _mode, buf)
       end
     end
 
-    local file = mark.file and vim.fn.fnamemodify(mark.file, ":p:.")
+    local file = mark.file and vim.fn.fnamemodify(mark.file, ":p:~:.")
 
     local value = string.format("%4d  ", lnum)
+    value = value .. (line or file or "")
 
     table.insert(items, {
       key = key,
-      label = labels[key] or "",
-      value = value .. (line or file or ""),
-      highlights = { { 1, #value - 1, "Number" } },
+      label = labels[key] or file and ("file: " .. file) or "",
+      value = value,
+      highlights = { { 1, 5, "Number" } },
     })
   end
   return items

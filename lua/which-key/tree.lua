@@ -2,28 +2,31 @@ local Util = require("which-key.util")
 
 ---@class Tree
 ---@field root Node
+---@field nodes table<string, Node>
 local Tree = {}
 Tree.__index = Tree
 
 ---@class Node
 ---@field mapping Mapping
----@field prefix string
+---@field prefix_i string
+---@field prefix_n string
 ---@field children table<string, Node>
 -- selene: allow(unused_variable)
 local Node
 
 ---@return Tree
 function Tree:new()
-  local this = { root = { children = {}, prefix = "" } }
+  local this = { root = { children = {}, prefix_i = "", prefix_n = "" }, nodes = {} }
   setmetatable(this, self)
   return this
 end
 
----@param prefix string
----@param index number defaults to last. If < 0, then offset from last
----@return Node
-function Tree:get(prefix, index, plugin_context)
-  prefix = Util.parse_keys(prefix).term
+---@param prefix_i string
+---@param index? number defaults to last. If < 0, then offset from last
+---@param plugin_context? any
+---@return Node?
+function Tree:get(prefix_i, index, plugin_context)
+  local prefix = Util.parse_internal(prefix_i)
   local node = self.root
   index = index or #prefix
   if index < 0 then
@@ -35,7 +38,7 @@ function Tree:get(prefix, index, plugin_context)
       local children = require("which-key.plugins").invoke(node.mapping, plugin_context)
       node.children = {}
       for _, child in pairs(children) do
-        self:add(child)
+        self:add(child, { cache = false })
       end
     end
     if not node then
@@ -46,10 +49,10 @@ function Tree:get(prefix, index, plugin_context)
 end
 
 -- Returns the path (possibly incomplete) for the prefix
----@param prefix string
+---@param prefix_i string
 ---@return Node[]
-function Tree:path(prefix)
-  prefix = Util.parse_keys(prefix).term
+function Tree:path(prefix_i)
+  local prefix = Util.parse_internal(prefix_i)
   local node = self.root
   local path = {}
   for i = 1, #prefix, 1 do
@@ -63,22 +66,37 @@ function Tree:path(prefix)
 end
 
 ---@param mapping Mapping
-function Tree:add(mapping)
-  local prefix = mapping.keys.term
-  local node = self.root
-  local path = ""
-  for i = 1, #prefix, 1 do
-    path = path .. prefix[i]
-    if not node.children[prefix[i]] then
-      node.children[prefix[i]] = { children = {}, prefix = path }
+---@param opts? {cache?: boolean}
+---@return Node
+function Tree:add(mapping, opts)
+  opts = opts or {}
+  opts.cache = opts.cache ~= false
+  local node_key = mapping.keys.keys
+  local node = opts.cache and self.nodes[node_key]
+  if not node then
+    local prefix_i = mapping.keys.internal
+    local prefix_n = mapping.keys.notation
+    node = self.root
+    local path_i = ""
+    local path_n = ""
+    for i = 1, #prefix_i, 1 do
+      path_i = path_i .. prefix_i[i]
+      path_n = path_n .. prefix_n[i]
+      if not node.children[prefix_i[i]] then
+        node.children[prefix_i[i]] = { children = {}, prefix_i = path_i, prefix_n = path_n }
+      end
+      node = node.children[prefix_i[i]]
     end
-    node = node.children[prefix[i]]
+    if opts.cache then
+      self.nodes[node_key] = node
+    end
   end
   node.mapping = vim.tbl_deep_extend("force", node.mapping or {}, mapping)
+  return node
 end
 
 ---@param cb fun(node:Node)
----@param node Node
+---@param node? Node
 function Tree:walk(cb, node)
   node = node or self.root
   cb(node)

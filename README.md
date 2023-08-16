@@ -7,38 +7,43 @@ the command you started typing. Heavily inspired by the original [emacs-which-ke
 
 ## ✨ Features
 
-* opens a popup with suggestions to complete a key binding
-* works with any setting for [timeoutlen](https://neovim.io/doc/user/options.html#'timeoutlen'), including instantly (`timeoutlen=0`)
-* works correctly with built-in key bindings
-* works correctly with buffer-local mappings
-* extensible plugin architecture
-* built-in plugins:
-  + **marks:** shows your marks when you hit one of the jump keys.
-  + **registers:** shows the contents of your registers
-  + **presets:** built-in key binding help for `motions`, `text-objects`, `operators`, `windows`, `nav`, `z` and `g`
-  + **spelling:** spelling suggestions inside the which-key popup
+- for Neovim 0.7 and higher, it uses the `desc` attributes of your mappings as the default label
+- for Neovim 0.7 and higher, new mappings will be created with a `desc` attribute
+- opens a popup with suggestions to complete a key binding
+- works with any setting for [timeoutlen](https://neovim.io/doc/user/options.html#'timeoutlen'), including instantly (`timeoutlen=0`)
+- works correctly with built-in key bindings
+- works correctly with buffer-local mappings
+- extensible plugin architecture
+- built-in plugins:
+  - **marks:** shows your marks when you hit one of the jump keys.
+  - **registers:** shows the contents of your registers
+  - **presets:** built-in key binding help for `motions`, `text-objects`, `operators`, `windows`, `nav`, `z` and `g`
+  - **spelling:** spelling suggestions inside the which-key popup
 
 ## ⚡️ Requirements
 
-* Neovim >= 0.5.0
+- Neovim >= 0.5.0
 
 ## 📦 Installation
 
 Install the plugin with your preferred package manager:
 
-### [vim-plug](https://github.com/junegunn/vim-plug)
+### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
-```vim
-" Vim Script
-Plug 'folke/which-key.nvim'
-
-lua << EOF
-  require("which-key").setup {
+```lua
+{
+  "folke/which-key.nvim",
+  event = "VeryLazy",
+  init = function()
+    vim.o.timeout = true
+    vim.o.timeoutlen = 300
+  end,
+  opts = {
     -- your configuration comes here
     -- or leave it empty to use the default settings
     -- refer to the configuration section below
   }
-EOF
+}
 ```
 
 ### [packer](https://github.com/wbthomason/packer.nvim)
@@ -48,6 +53,8 @@ EOF
 use {
   "folke/which-key.nvim",
   config = function()
+    vim.o.timeout = true
+    vim.o.timeoutlen = 300
     require("which-key").setup {
       -- your configuration comes here
       -- or leave it empty to use the default settings
@@ -59,14 +66,14 @@ use {
 
 ## ⚙️ Configuration
 
-> ❗️ IMPORTANT: the timeout when **WhichKey** opens is controlled by the vim setting [timeoutlen](https://neovim.io/doc/user/options.html#'timeoutlen').
+> ❗️ IMPORTANT: the [timeout](https://neovim.io/doc/user/options.html#'timeout') when **WhichKey** opens is controlled by the vim setting [timeoutlen](https://neovim.io/doc/user/options.html#'timeoutlen').
 > Please refer to the documentation to properly set it up. Setting it to `0`, will effectively
 > always show **WhichKey** immediately, but a setting of `500` (500ms) is probably more appropriate.
 
-> ❗️ don't create any keymappings yourself to trigger WhichKey. Unlike with *vim-which-key*, we do this fully automatically.
-> Please remove any left-over triggers you might have from using *vim-which-key*.
+> ❗️ don't create any keymappings yourself to trigger WhichKey. Unlike with _vim-which-key_, we do this fully automatically.
+> Please remove any left-over triggers you might have from using _vim-which-key_.
 
-> 🚑 You can run `:checkhealth which_key` to see if there's any conflicting keymaps that will prevent triggering **WhichKey**
+> 🚑 You can run `:checkhealth which-key` to see if there's any conflicting keymaps that will prevent triggering **WhichKey**
 
 WhichKey comes with the following defaults:
 
@@ -78,11 +85,11 @@ WhichKey comes with the following defaults:
     -- the presets plugin, adds help for a bunch of default keybindings in Neovim
     -- No actual key bindings are created
     spelling = {
-      enabled = false, -- enabling this will show WhichKey when pressing z= to select spelling suggestions
+      enabled = true, -- enabling this will show WhichKey when pressing z= to select spelling suggestions
       suggestions = 20, -- how many suggestions should be shown in the list?
     },
     presets = {
-      operators = true, -- adds help for operators like d, y, ... and registers them for motion / text object completion
+      operators = true, -- adds help for operators like d, y, ...
       motions = true, -- adds help for motions
       text_objects = true, -- help for text objects triggered after entering an operator
       windows = true, -- default bindings on <c-w>
@@ -101,16 +108,25 @@ WhichKey comes with the following defaults:
     -- ["<cr>"] = "RET",
     -- ["<tab>"] = "TAB",
   },
+  motions = {
+    count = true,
+  },
   icons = {
     breadcrumb = "»", -- symbol used in the command line area that shows your active key combo
     separator = "➜", -- symbol used between a key and it's label
     group = "+", -- symbol prepended to a group
   },
+  popup_mappings = {
+    scroll_down = "<c-d>", -- binding to scroll down inside the popup
+    scroll_up = "<c-u>", -- binding to scroll up inside the popup
+  },
   window = {
     border = "none", -- none, single, double, shadow
     position = "bottom", -- bottom, top
-    margin = { 1, 0, 1, 0 }, -- extra window margin [top, right, bottom, left]
-    padding = { 2, 2, 2, 2 }, -- extra window padding [top, right, bottom, left]
+    margin = { 1, 0, 1, 0 }, -- extra window margin [top, right, bottom, left]. When between 0 and 1, will be treated as a percentage of the screen size.
+    padding = { 1, 2, 1, 2 }, -- extra window padding [top, right, bottom, left]
+    winblend = 0, -- value between 0-100 0 for fully opaque and 100 for fully transparent
+    zindex = 1000, -- positive value to position WhichKey above other floating windows.
   },
   layout = {
     height = { min = 4, max = 25 }, -- min and max height of the columns
@@ -119,16 +135,35 @@ WhichKey comes with the following defaults:
     align = "left", -- align columns left, center or right
   },
   ignore_missing = false, -- enable this to hide mappings for which you didn't specify a label
-  hidden = { "<silent>", "<cmd>", "<Cmd>", "<CR>", "call", "lua", "^:", "^ "}, -- hide mapping boilerplate
-  show_help = true, -- show help message on the command line when the popup is visible
+  hidden = { "<silent>", "<cmd>", "<Cmd>", "<CR>", "^:", "^ ", "^call ", "^lua " }, -- hide mapping boilerplate
+  show_help = true, -- show a help message in the command line for using WhichKey
+  show_keys = true, -- show the currently pressed key and its label as a message in the command line
   triggers = "auto", -- automatically setup triggers
-  -- triggers = {"<leader>"} -- or specify a list manually
+  -- triggers = {"<leader>"} -- or specifiy a list manually
+  -- list of triggers, where WhichKey should not wait for timeoutlen and show immediately
+  triggers_nowait = {
+    -- marks
+    "`",
+    "'",
+    "g`",
+    "g'",
+    -- registers
+    '"',
+    "<c-r>",
+    -- spelling
+    "z=",
+  },
   triggers_blacklist = {
     -- list of mode / prefixes that should never be hooked by WhichKey
-    -- this is mostly relevant for key maps that start with a native binding
-    -- most people should not need to change this
+    -- this is mostly relevant for keymaps that start with a native binding
     i = { "j", "k" },
     v = { "j", "k" },
+  },
+  -- disable the WhichKey popup for certain buf types and file types.
+  -- Disabled by default for Telescope
+  disable = {
+    buftypes = {},
+    filetypes = {},
   },
 }
 ```
@@ -152,11 +187,12 @@ Default options for `opts`
   mode = "n", -- NORMAL mode
   -- prefix: use "<leader>f" for example for mapping everything related to finding files
   -- the prefix is prepended to every mapping part of `mappings`
-  prefix = "", 
+  prefix = "",
   buffer = nil, -- Global mappings. Specify a buffer number for buffer local mappings
   silent = true, -- use `silent` when creating keymaps
   noremap = true, -- use `noremap` when creating keymaps
   nowait = false, -- use `nowait` when creating keymaps
+  expr = false, -- use `expr` when creating keymaps
 }
 ```
 
@@ -164,11 +200,13 @@ Default options for `opts`
 
 ### ⌨️ Mappings
 
+> ⌨ for **Neovim 0.7** and higher, which key will use the `desc` attribute of existing mappings as the default label
+
 Group names use the special `name` key in the tables. There's multiple ways to define the mappings. `wk.register` can be called multiple times from anywhere in your config files.
 
 ```lua
 local wk = require("which-key")
--- As an example, we will the create following mappings:
+-- As an example, we will create the following mappings:
 --  * <leader>ff find files
 --  * <leader>fr show recent files
 --  * <leader>fb Foobar
@@ -229,21 +267,24 @@ wk.register({
 
 </details>
 
+**Tips:** The default label is `keymap.desc` or `keymap.rhs` or `""`,
+`:h nvim_set_keymap()` to get more details about `desc` and `rhs`.
+
 ### 🚙 Operators, Motions and Text Objects
 
 **WhichKey** provides help to work with operators, motions and text objects.
 
 > `[count]operator[count][text-object]`
 
-* operators can be configured with the `operators` option
-  + set `plugins.presets.operators` to `true` to automatically configure vim built-in operators
-  + set this to `false`, to only include the list you configured in the `operators` option.
-  + see [here](https://github.com/folke/which-key.nvim/blob/main/lua/which-key/plugins/presets/init.lua#L5) for the full list part of the preset
-* text objects are automatically retrieved from **operator pending** key maps (`omap`)
-  + set `plugins.presets.text_objects` to `true` to configure built-in text objects
-  + see [here](https://github.com/folke/which-key.nvim/blob/423a50cccfeb8b812e0e89f156316a4bd9d2673a/lua/which-key/plugins/presets/init.lua#L43)
-* motions are part of the preset `plugins.presets.motions` setting
-  + see [here](https://github.com/folke/which-key.nvim/blob/423a50cccfeb8b812e0e89f156316a4bd9d2673a/lua/which-key/plugins/presets/init.lua#L20)
+- operators can be configured with the `operators` option
+  - set `plugins.presets.operators` to `true` to automatically configure vim built-in operators
+  - set this to `false`, to only include the list you configured in the `operators` option.
+  - see [here](https://github.com/folke/which-key.nvim/blob/main/lua/which-key/plugins/presets/init.lua#L5) for the full list part of the preset
+- text objects are automatically retrieved from **operator pending** key maps (`omap`)
+  - set `plugins.presets.text_objects` to `true` to configure built-in text objects
+  - see [here](https://github.com/folke/which-key.nvim/blob/main/lua/which-key/plugins/presets/init.lua#L43)
+- motions are part of the preset `plugins.presets.motions` setting
+  - see [here](https://github.com/folke/which-key.nvim/blob/main/lua/which-key/plugins/presets/init.lua#L20)
 
 <details>
 <summary>How to disable some operators? (like v)</summary>
@@ -261,16 +302,16 @@ presets.operators["v"] = nil
 
 When the **WhichKey** popup is open, you can use the following key bindings (they are also displayed at the bottom of the screen):
 
-* hit one of the keys to open a group or execute a key binding
-* `<esc>` to cancel and close the popup
-* `<bs>` go up one level
-* `<c-d>` scroll down
-* `<c-u>` scroll up
+- hit one of the keys to open a group or execute a key binding
+- `<esc>` to cancel and close the popup
+- `<bs>` go up one level
+- `<c-d>` scroll down
+- `<c-u>` scroll up
 
-Apart from the automatic opening, you can also  manually open **WhichKey** for a certain `prefix`:
+Apart from the automatic opening, you can also manually open **WhichKey** for a certain `prefix`:
 
-> ❗️ don't create any keymappings yourself to trigger WhichKey. Unlike with *vim-which-key*, we do this fully automatically.
-> Please remove any left-over triggers you might have from using *vim-which-key*.
+> ❗️ don't create any keymappings yourself to trigger WhichKey. Unlike with _vim-which-key_, we do this fully automatically.
+> Please remove any left-over triggers you might have from using _vim-which-key_.
 
 ```vim
 :WhichKey " show all mappings
@@ -291,7 +332,7 @@ Shows a list of your buffer local and global marks when you hit \` or '
 
 ### Registers
 
-Shows a list of your buffer local and global registers when you hit " in *NORMAL* mode, or `<c-r>` in *INSERT* mode.
+Shows a list of your buffer local and global registers when you hit " in _NORMAL_ mode, or `<c-r>` in _INSERT_ mode.
 
 ![image](https://user-images.githubusercontent.com/292349/116439609-98b0ef00-a804-11eb-9385-97c7d5ff4113.png)
 
@@ -313,12 +354,13 @@ The table below shows all the highlight groups defined for **WhichKey** with the
 
 | Highlight Group     | Defaults to | Description                                 |
 | ------------------- | ----------- | ------------------------------------------- |
-| *WhichKey*          | Function    | the key                                     |
-| *WhichKeyGroup*     | Keyword     | a group                                     |
-| *WhichKeySeparator* | DiffAdded   | the separator between the key and its label |
-| *WhichKeyDesc*      | Identifier  | the label of the key                        |
-| *WhichKeyFloat*     | NormalFloat | Normal in the popup window                  |
-| *WhichKeyValue*     | Comment     | used by plugins that provide values         |
+| _WhichKey_          | Function    | the key                                     |
+| _WhichKeyGroup_     | Keyword     | a group                                     |
+| _WhichKeySeparator_ | DiffAdd     | the separator between the key and its label |
+| _WhichKeyDesc_      | Identifier  | the label of the key                        |
+| _WhichKeyFloat_     | NormalFloat | Normal in the popup window                  |
+| _WhichKeyBorder_    | FloatBorder | Normal in the popup window                  |
+| _WhichKeyValue_     | Comment     | used by plugins that provide values         |
 
 <!-- markdownlint-disable-file MD033 -->
 <!-- markdownlint-configure-file { "MD013": { "line_length": 120 } } -->

@@ -14,22 +14,23 @@ end
 
 M.opts = {}
 
-function M.setup(_wk, config, options)
-  table.insert(options.triggers_nowait, "z=")
+function M.setup(_, config, options)
   M.opts = config
 end
 
 ---@type Plugin
 ---@return PluginItem[]
-function M.run(_trigger, _mode, _buf)
+function M.run()
   -- if started with a count, let the default keybinding work
   local count = vim.api.nvim_get_vvar("count")
   if count and count > 0 then
     return {}
   end
 
+  ---@diagnostic disable-next-line: missing-parameter
   local cursor_word = vim.fn.expand("<cword>")
   -- get a misspellled word from under the cursor, if not found, then use the cursor_word instead
+  ---@diagnostic disable-next-line: redundant-parameter
   local bad = vim.fn.spellbadword(cursor_word)
   local word = bad[1]
   if word == "" then

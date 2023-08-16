@@ -1,3 +1,4 @@
+---@type Plugin
 local extra = require("which-key.config").options.plugins.presets.extra
 
 local M = {}
@@ -6,10 +7,13 @@ M.name = "registers"
 
 M.actions = {
   { trigger = '"', mode = "n" },
-  { trigger = "@", mode = "n" },
+  { trigger = '"', mode = "v" },
+  -- { trigger = "@", mode = "n" },
   { trigger = "<c-r>", mode = "i" },
   { trigger = "<c-r>", mode = "c" },
 }
+
+function M.setup(_wk, _config, options) end
 
 if extra == true then
   M.actions = {

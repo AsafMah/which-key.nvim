@@ -1,3 +1,5 @@
+---@meta
+
 -- # selene: allow(unused_variable)
 ---@class Keymap
 ---@field rhs string
@@ -11,46 +13,45 @@
 ---@field script number
 ---@field sid number
 ---@field silent number
----@field id string terminal codes for lhs
-local Keymap
+---@field callback fun()|nil
+---@field id string terminal keycodes for lhs
+---@field desc string
 
 ---@class KeyCodes
 ---@field keys string
----@field term string[]
----@field nvim string[]
-local KeyCodes
+---@field internal string[]
+---@field notation string[]
 
 ---@class MappingOptions
 ---@field noremap boolean
 ---@field silent boolean
 ---@field nowait boolean
 ---@field expr boolean
-local MappingOptions
 
 ---@class Mapping
 ---@field buf number
 ---@field group boolean
 ---@field label string
+---@field desc string
 ---@field prefix string
 ---@field cmd string
 ---@field opts MappingOptions
 ---@field keys KeyCodes
+---@field mode? string
+---@field callback fun()|nil
 ---@field preset boolean
 ---@field plugin string
 ---@field fn fun()
-local Mapping
 
 ---@class MappingTree
 ---@field mode string
----@field buf number
+---@field buf? number
 ---@field tree Tree
-local MappingTree
 
 ---@class VisualMapping : Mapping
 ---@field key string
 ---@field highlights table
 ---@field value string
-local VisualMapping
 
 ---@class PluginItem
 ---@field key string
@@ -58,11 +59,15 @@ local VisualMapping
 ---@field value string
 ---@field cmd string
 ---@field highlights table
-local PluginItem
+
+---@class PluginAction
+---@field trigger string
+---@field mode string
+---@field label? string
+---@field delay? boolean
 
 ---@class Plugin
 ---@field name string
----@field actions string[] | string[][]
+---@field actions PluginAction[]
 ---@field run fun(trigger:string, mode:string, buf:number):PluginItem[]
----@field setup fun()
-local Plugin
+---@field setup fun(wk, opts, Options)

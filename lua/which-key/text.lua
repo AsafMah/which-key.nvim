@@ -1,3 +1,9 @@
+---@class Highlight
+---@field group string
+---@field line number
+---@field from number
+---@field to number
+
 ---@class Text
 ---@field lines string[]
 ---@field hl Highlight[]
@@ -17,7 +23,7 @@ function Text:new()
 end
 
 function Text:fix_nl(line)
-  return line:gsub("[\n]", "﬋")
+  return line:gsub("[\n]", "")
 end
 
 function Text:nl()

@@ -13,7 +13,7 @@ local Layout = {}
 Layout.__index = Layout
 
 ---@param mappings MappingGroup
----@param options Options
+---@param options? Options
 function Layout:new(mappings, options)
   options = options or Config.options
   local this = {
@@ -38,39 +38,43 @@ function Layout:max_width(key)
 end
 
 function Layout:trail()
-  local prefix = self.results.prefix
-  local buf_path = Keys.get_tree(self.results.mode, self.results.buf).tree:path(prefix)
-  local path = Keys.get_tree(self.results.mode).tree:path(prefix)
-  local len = #self.results.mapping.keys.nvim
+  local prefix_i = self.results.prefix_i
+  local buf_path = Keys.get_tree(self.results.mode, self.results.buf).tree:path(prefix_i)
+  local path = Keys.get_tree(self.results.mode).tree:path(prefix_i)
+  local len = #self.results.mapping.keys.notation
   local cmd_line = { { " " } }
   for i = 1, len, 1 do
     local node = buf_path[i]
     if not (node and node.mapping and node.mapping.label) then
       node = path[i]
     end
-    local step = self.mapping.keys.nvim[i]
+    local step = self.mapping.keys.notation[i]
     if node and node.mapping and node.mapping.label then
       step = self.options.icons.group .. node.mapping.label
     end
     if Config.options.key_labels[step] then
       step = Config.options.key_labels[step]
     end
-    table.insert(cmd_line, { step, "WhichKeyGroup" })
-    if i ~= #self.mapping.keys.nvim then
-      table.insert(cmd_line, { " " .. self.options.icons.breadcrumb .. " ", "WhichKeySeparator" })
+    if Config.options.show_keys then
+      table.insert(cmd_line, { step, "WhichKeyGroup" })
+      if i ~= #self.mapping.keys.notation then
+        table.insert(cmd_line, { " " .. self.options.icons.breadcrumb .. " ", "WhichKeySeparator" })
+      end
     end
   end
   local width = 0
-  for _, line in pairs(cmd_line) do
-    width = width + Text.len(line[1])
+  if Config.options.show_keys then
+    for _, line in pairs(cmd_line) do
+      width = width + Text.len(line[1])
+    end
   end
   local help = { --
     ["<bs>"] = "go up one level",
     ["<esc>"] = "close",
   }
   if #self.text.lines > self.options.layout.height.max then
-    help["<c-d>"] = "scroll down"
-    help["<c-u>"] = "scroll up"
+    help[Config.options.popup_mappings.scroll_down] = "scroll down"
+    help[Config.options.popup_mappings.scroll_up] = "scroll up"
   end
   local help_line = {}
   local help_width = 0
@@ -79,20 +83,34 @@ function Layout:trail()
     table.insert(help_line, { key .. " ", "WhichKey" })
     table.insert(help_line, { label .. " ", "WhichKeySeparator" })
   end
-  table.insert(cmd_line, { string.rep(" ", math.floor(vim.o.columns / 2 - help_width / 2) - width) })
+  if Config.options.show_keys then
+    table.insert(cmd_line, { string.rep(" ", math.floor(vim.o.columns / 2 - help_width / 2) - width) })
+  end
 
   if self.options.show_help then
     for _, l in pairs(help_line) do
       table.insert(cmd_line, l)
     end
   end
-  vim.api.nvim_echo(cmd_line, false, {})
+  if vim.o.cmdheight > 0 then
+    vim.api.nvim_echo(cmd_line, false, {})
+    vim.cmd([[redraw]])
+  else
+    local col = 1
+    self.text:nl()
+    local row = #self.text.lines
+    for _, text in ipairs(cmd_line) do
+      self.text:set(row, col, text[1], text[2] and text[2]:gsub("WhichKey", "") or nil)
+      col = col + vim.fn.strwidth(text[1])
+    end
+  end
 end
 
 function Layout:layout(win)
+  local pad_top, pad_right, pad_bot, pad_left = unpack(self.options.window.padding)
   local window_width = vim.api.nvim_win_get_width(win)
   local width = window_width
-  width = width - self.options.window.padding[2] - self.options.window.padding[4]
+  width = width - pad_right - pad_left
 
   local max_key_width = self:max_width("key")
   local max_label_width = self:max_width("label")
@@ -129,8 +147,6 @@ function Layout:layout(win)
 
   local col = 1
   local row = 1
-  local pad_top = self.options.window.padding[3]
-  local pad_left = self.options.window.padding[4]
 
   local columns_used = math.min(columns, math.ceil(#self.items / height))
   local offset_x = 0
@@ -143,10 +159,7 @@ function Layout:layout(win)
   end
 
   for _, item in pairs(self.items) do
-    local start = (col - 1) * column_width + self.options.layout.spacing + offset_x
-    if col == 1 then
-      start = start + pad_left
-    end
+    local start = (col - 1) * column_width + self.options.layout.spacing + offset_x + pad_left
     local key = item.key or ""
     if key == "<lt>" then
       key = "<"
@@ -193,7 +206,7 @@ function Layout:layout(win)
     end
   end
 
-  for _ = 1, self.options.window.padding[3], 1 do
+  for _ = 1, pad_bot, 1 do
     self.text:nl()
   end
   self:trail()

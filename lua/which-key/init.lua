@@ -19,6 +19,7 @@ local function schedule_load()
   end
 end
 
+---@param options? Options
 function M.setup(options)
   require("which-key.config").setup(options)
   schedule_load()
@@ -36,9 +37,6 @@ function M.show(keys, opts)
   end
 
   keys = keys or ""
-
-  -- mappings will pass <lt> as <, so change it back
-  keys = keys:gsub("[<]", "<lt>")
 
   opts.mode = opts.mode or Util.get_mode()
   local buf = vim.api.nvim_get_current_buf()
@@ -59,7 +57,7 @@ function M.show_command(keys, mode)
   keys = Util.t(keys)
   if not Util.check_mode(mode) then
     Util.error(
-      "Invalid mode passed to :WhichKey (Dont create any keymappings to trigger WhichKey. WhichKey does this automaytically)"
+      "Invalid mode passed to :WhichKey (Don't create any keymappings to trigger WhichKey. WhichKey does this automatically)"
     )
   else
     M.show(keys, { mode = mode })
